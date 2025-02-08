@@ -1,0 +1,7 @@
+cmd: [ 'sh', '-c', 'for i in $(seq 1 5); do echo $(date -uIseconds) hello $i from $$; sleep 1; done' ]
+
+# Alive healthcheck: consider the cmd healthy after 10 seconds.
+healthcheck:
+  alive:
+    timeout: 10s
+

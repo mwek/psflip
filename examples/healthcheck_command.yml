@@ -1,0 +1,8 @@
+cmd: [ 'sh', '-c', 'while true; do echo $(date -uIseconds) hello from $$; sleep 1; done' ]
+
+healthcheck:
+  command:
+    cmd: [ 'bash', '-c', 'r=$((RANDOM % 5)); echo $(date -uIseconds) healthcheck $r >> /tmp/healthcheck.log; [[ $r -eq 0 ]]' ]
+    after: 3s
+    interval: 2s
+

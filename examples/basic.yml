@@ -1,0 +1,2 @@
+# Basic setup: what child process to run. `psflip` will assume it's healthy if it survives 5 seconds
+cmd: [ 'sh', '-c', 'while true; do echo $(date -uIseconds) hello from $$; sleep 1; done' ]
