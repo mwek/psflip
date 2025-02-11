@@ -8,20 +8,34 @@ Many zero-downtime deployment systems already exists (see "Alternatives" section
 
 I needed a zero-downtime deployment system for an existing codebase communicating over Unix sockets with FCGI, where the technology stack varied. I didn't find anything that suited my needs, that's how `psflip` was born.
 
+`psfilp` is built on top of [tableflip](https://github.com/cloudflare/tableflip), and supports the following requirements:
+
+* No old code keeps running after a successful upgrade -- old `psflip` terminates the child process.
+* The new process has a grace period for performing initialization -- it must pass a healthcheck before considered "healthy".
+* When upgrading, crashing during initialization is OK -- the old process will never be killed unless the new process.
+* Only a single upgrade is ever run in parallel.
+* `psflip` can be upgraded with zero-downtime -- replace the `psflip` binary with a new version and follow the upgrade process.
+* Child configuration can be updated with zero-downtime -- change the config file and follow the upgrade process.
+
 ## How it works
 
 `psflip` supervises an execution of a single `child`, attempting to make its existent as transparent as possible:
 
-* the `child` inherits `psflip`'s environment, and `std{in,out,err}` streams
-* `psflip` proxies any signals to `child` (except the `upgrade` signal -- read more below)
-* when the `child` exits, `psflip` exits as well and relays its exit code
+* the `child` inherits `psflip`'s environment, and `std{in,out,err}` streams,
+* `psflip` proxies any signals to `child` (except the `upgrade` signal -- read more below),
+* when the `child` exits, `psflip` exits as well and relays its exit code.
 
-When `psflip` receives an `upgrade` signal (default: `SIGHUP`), it performs the upgrade following [tableflip](https://github.com/cloudflare/tableflip) requirements:
+When `psflip` receives an `upgrade` signal (default: `SIGHUP`), it performs the upgrade:
 
-* No old code keeps running after a successful upgrade -- old `psflip` terminates the process.
-* The new process has a grace period for performing initialisation -- it must pass a healthcheck before considered "healthy".
-* When upgrading, crashing during initialisation is OK -- the old process continues to run.
-* Only a single upgrade is ever run in parallel.
+* the old process forks and performs an initialization,
+* the new `psflip` re-reads configuration file and spawns a new version of the child,
+* the new `psflip` monitors supervises child initialization and validates it passes the defined healthcheck,
+* if the new child process crashes or does not initialize in time, new `psflip` terminates the child and exits,
+* if the new `psflip` crashes or does not initialize in time, the old `psflip` terminates the new `psflip` and continues to run,
+* if new `psfilp` validates the child as healthy, it updates the pidfile and notifies the old `psflip` about successful upgrade,
+* upon the notification, the old `psflip` terminates its child and exits.
+
+On Linux, each `psflip` child is spawned with `pdeathsig` enabled, i.e. Linux kernel will automatically terminate the children if `psflip` crashes without cleanup.
 
 ## Configuration
 
