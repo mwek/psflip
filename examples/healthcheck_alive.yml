@@ -1,7 +1,8 @@
 cmd: [ 'sh', '-c', 'for i in $(seq 1 5); do echo $(date -uIseconds) hello $i from $$; sleep 1; done' ]
 
-# Alive healthcheck: consider the cmd healthy after 10 seconds.
+# Only one healthcheck can be specified.
 healthcheck:
+  # alive considers the child healthy after given timeout (default: 5s)
   alive:
+    # increase the timeout to 10 seconds
     timeout: 10s
-

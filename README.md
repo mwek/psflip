@@ -10,9 +10,9 @@ I needed a zero-downtime deployment system for an existing codebase communicatin
 
 `psfilp` is built on top of [tableflip](https://github.com/cloudflare/tableflip), and supports the following requirements:
 
-* No old code keeps running after a successful upgrade -- old `psflip` terminates the child process.
-* The new process has a grace period for performing initialization -- it must pass a healthcheck before considered "healthy".
-* When upgrading, crashing during initialization is OK -- the old process will never be killed unless the new process.
+* No old code keeps running after a successful upgrade -- old `psflip` gracefully terminates the child process.
+* The new process has a grace period for performing initialization, and must pass a healthcheck before considered healthy.
+* When upgrading, crashing during initialization is OK, either on `psflip` side, or on child process side. The old process will never be killed unless the new process is considered healthy.
 * Only a single upgrade is ever run in parallel.
 * `psflip` can be upgraded with zero-downtime -- replace the `psflip` binary with a new version and follow the upgrade process.
 * Child configuration can be updated with zero-downtime -- change the config file and follow the upgrade process.
@@ -33,7 +33,8 @@ When `psflip` receives an `upgrade` signal (default: `SIGHUP`), it performs the 
 * if the new child process crashes or does not initialize in time, new `psflip` terminates the child and exits,
 * if the new `psflip` crashes or does not initialize in time, the old `psflip` terminates the new `psflip` and continues to run,
 * if new `psfilp` validates the child as healthy, it updates the pidfile and notifies the old `psflip` about successful upgrade,
-* upon the notification, the old `psflip` terminates its child and exits.
+* upon the notification, the old `psflip` attempts to gracefully terminate its child through a `terminate` signal (default: `SIGTERM`),
+* it the child does not shut down in a given `` time, the old `psflip` terminates it through `SIGKILL` and exits.
 
 On Linux, each `psflip` child is spawned with `pdeathsig` enabled, i.e. Linux kernel will automatically terminate the children if `psflip` crashes without cleanup.
 

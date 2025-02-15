@@ -2,7 +2,7 @@ package main
 
 import (
 	"context"
-	"log"
+	logger "log"
 	"os"
 	"os/signal"
 	"time"
@@ -22,19 +22,25 @@ type Config struct {
 	Cmd []figs.TString `validate:"required"`
 	// Env stores the extra environment to be passed to the child process
 	Env []figs.TString
-	// Pidfile (if not empty) stores the path with the PID of the active psflip
+	// Pidfile (if not empty) describes the path with the PID of the active psflip
 	Pidfile figs.TString
-	// UpgradeTimeout specifies the maximum duration for the healthcheck
-	UpgradeTimeout time.Duration `fig:"upgrade_timeout" default:"1m"`
-	// ChildTimeout specifies the maximum duration for the Child to exit gracefully before being KILLed
-	ChildTimeout time.Duration `fig:"child_timeout" default:"5s"`
+	// Quiet suppresses any log output from printf
+	Quiet bool
 
-	// Signals describe the control signals for psflip
-	Signals struct {
-		// Upgrade is the signal captured by psflip to initiate the upgrade process
-		Upgrade figs.Signal `default:"SIGHUP"`
-		// Terminate signal is sent to the Child when asked to shut down gracefully
-		Terminate figs.Signal `default:"SIGTERM"`
+	// Upgrade controls the psflip upgrade process.
+	Upgrade struct {
+		// Signal initiating the upgrade process
+		Signal figs.Signal `default:"SIGHUP"`
+		// Timeout after the child is considered "unhealthy"
+		Timeout time.Duration `default:"1m"`
+	}
+
+	// Shutdown controls the child's graceful shutdown.
+	Shutdown struct {
+		// Signal sent to the child asking for graceful shutdown.
+		Signal figs.Signal `default:"SIGTERM"`
+		// Timeout after the child receives the SIGKILL.
+		Timeout time.Duration `default:"10s"`
 	}
 
 	// Healthcheck describes when to assume the child is healthy.
@@ -48,26 +54,33 @@ var (
 	ctx, ctxCancel = context.WithCancel(context.Background())
 )
 
+func log(format string, v ...any) {
+	if config.Quiet {
+		return
+	}
+	logger.Printf(format, v...)
+}
+
 func exit(code int, format string, v ...any) {
 	if code < 0 {
 		code = 1
 	}
 	ctxCancel()
 	if child != nil && child.Exited == nil {
-		log.Printf("worker %s: sending %s", child, config.Signals.Terminate)
-		child.Signal(config.Signals.Terminate.Syscall())
+		log("worker %s: sending %s", child, config.Shutdown.Signal)
+		child.Signal(config.Shutdown.Signal.Syscall())
 		select {
 		case <-child.Done:
 			// We are all good
-		case <-time.After(config.ChildTimeout):
-			log.Printf("worker %s: did not exit in %s, sending SIGKILL", child, config.ChildTimeout)
+		case <-time.After(config.Shutdown.Timeout):
+			log("worker %s: did not exit in %s, sending SIGKILL", child, config.Shutdown.Timeout)
 			child.Kill()
 			<-child.Done
 			// consider SIGKILL abnormal exit
 			code = max(code, 1)
 		}
 	}
-	log.Printf(format, v...)
+	log(format, v...)
 	os.Exit(code)
 }
 
@@ -76,7 +89,7 @@ func handleSignals(upg *tableflip.Upgrader) {
 	signal.Notify(sig)
 	for s := range sig {
 		switch {
-		case s == config.Signals.Upgrade.Syscall():
+		case s == config.Upgrade.Signal.Syscall():
 			upg.Upgrade()
 		default:
 			if child != nil {
@@ -108,7 +121,7 @@ func main() {
 	// Support zero-downtime upgrades
 	upg, _ := tableflip.New(tableflip.Options{
 		PIDFile:        config.Pidfile.String(),
-		UpgradeTimeout: config.UpgradeTimeout + 5*time.Second, // 5s buffer should prevent tableflip kills
+		UpgradeTimeout: config.Upgrade.Timeout + 5*time.Second, // 5s buffer should prevent tableflip kills
 	})
 	defer upg.Stop()
 
@@ -123,8 +136,8 @@ func main() {
 
 	// Ensure we are healthy
 	select {
-	case <-time.After(config.UpgradeTimeout):
-		exit(1, "worker %s: unhealthy, did not settle after %s", child, config.UpgradeTimeout)
+	case <-time.After(config.Upgrade.Timeout):
+		exit(1, "worker %s: unhealthy, did not settle after %s", child, config.Upgrade.Timeout)
 	case ps := <-child.Done:
 		ec := process.ExitCode(ps)
 		exit(max(ec, 1), "worker %s: unhealthy, process exited with %d", child, ec)
@@ -138,7 +151,7 @@ func main() {
 	if err := upg.Ready(); err != nil {
 		exit(1, "worker %s: unhealthy, failed to signal ready: %v", child, err)
 	}
-	log.Printf("worker %s healthy", child)
+	log("worker %s healthy", child)
 
 	// exit on upgrade or on child exit
 	select {

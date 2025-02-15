@@ -1,0 +1,15 @@
+cmd: [ 'sh', '-c', 'while true; do echo $(date -uIseconds) hello from $$; sleep 1; done' ]
+
+# psflip upgrade configuration
+upgrade:
+  # Signal to initiate the upgrade process; this is the only signal that will never be proxied to the child.
+  signal: SIGUSR1
+  # Timeout after consider the process "unhealthy" and initiate the termination
+  timeout: 30s
+
+# Graceful child shutdown configuration
+shutdown:
+  # Signal sent to the child when asking to terminate. In this example, due to SIGSTOP, the child will hang indefinitely.
+  signal: SIGSTOP
+  # Timeout after which the child is SIGKILLed.
+  timeout: 5s

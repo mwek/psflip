@@ -29,7 +29,7 @@ func (c *Command) Healthy(ctx context.Context) <-chan error {
 }
 
 func (c *Command) check(ctx context.Context, result chan error) {
-	// Wait for first
+	// Wait for "After"
 	select {
 	case <-ctx.Done():
 		result <- errors.New("context cancelled")

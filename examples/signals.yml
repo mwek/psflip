@@ -1,8 +1,0 @@
-cmd: [ 'sh', '-c', 'while true; do echo $(date -uIseconds) hello from $$; sleep 1; done' ]
-pidfile: /tmp/hello-world.pid
-upgrade_timeout: 30s
-
-# Signals: configure communication between `psflip` and `cmd`
-signals:
-  upgrade: USR1    # signal sent to psflip to trigger the upgarde. It will NOT be forwarded to the child process.
-  terminate: STOP  # signal sent to the child when asking to terminate.

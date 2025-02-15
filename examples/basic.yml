@@ -1,2 +1,10 @@
 # Basic setup: what child process to run. `psflip` will assume it's healthy if it survives 5 seconds
-cmd: [ 'sh', '-c', 'while true; do echo $(date -uIseconds) hello from $$; sleep 1; done' ]
+cmd: [ 'sh', '-c', 'echo "$(date -uIseconds) hello from $$ started at ${START_DATE}"; while true; do printf $$.; sleep 1; done' ]
+# pidfile (optional) specifies the path psflip stores the current primary PID in.
+pidfile: /tmp/hello-world.pid
+# quiet (optional) suppresses any log output from psflip
+quiet: true
+# env (optional) specifies extra environment whan launching `cmd`
+env:
+# strings support at-startup template injection following Go template spec;
+- 'START_DATE={{ now "%Y-%m-%d_%H-%M-%S-%f" }}'
