@@ -12,16 +12,22 @@ var initialWD, _ = os.Getwd()
 var initialEnv = os.Environ()
 
 // Start is a wrapper on os.Process with Wait() signalled through channel
-func Start(args []string, env []string) (*Process, error) {
+func Start(args []string, opts ...Option) (*Process, error) {
 	executable, err := exec.LookPath(args[0])
 	if err != nil {
 		return nil, err
 	}
 
+	opt := options{}
+	for _, o := range opts {
+		o(&opt)
+	}
+
+	files := []*os.File{os.Stdin, os.Stdout, os.Stderr}
 	attr := &os.ProcAttr{
 		Dir:   initialWD,
-		Env:   slices.Concat(initialEnv, env),
-		Files: []*os.File{os.Stdin, os.Stdout, os.Stderr},
+		Env:   slices.Concat(initialEnv, opt.env),
+		Files: slices.Concat(files, opt.files),
 		Sys:   SysAttr(),
 	}
 

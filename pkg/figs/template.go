@@ -14,15 +14,56 @@ import (
 
 var t = template.New("psflip").Funcs(
 	template.FuncMap{
-		"env":      os.Getenv,
-		"escapere": regexp.QuoteMeta,
-		"cat":      cat,
-		"now":      now,
-		"utcnow":   utcnow,
+		"Env":       os.Getenv,
+		"AB":        AB,
+		"BlueGreen": BlueGreen,
+		"EscapeRE":  regexp.QuoteMeta,
+		"Cat":       Cat,
+		"Now":       Now,
+		"UTCNow":    UTCNow,
 	},
 )
 
-func cat(path string) string {
+const (
+	abEnv = "PSFLIP_AB_FLAG"
+	abA   = "a"
+	abB   = "b"
+)
+
+var (
+	abFlag string
+)
+
+func init() {
+	if os.Getenv(abEnv) == abA {
+		os.Setenv(abEnv, abB)
+		abFlag = abB
+	} else {
+		os.Setenv(abEnv, abA)
+		abFlag = abA
+	}
+}
+
+// AB initially returns s1, and then alternates between s1 and s2 on each process upgrade.
+func AB(s1, s2 string) string {
+	switch {
+	case abFlag == abA:
+		return s1
+	case abFlag == abB:
+		return s2
+	default:
+		return fmt.Sprintf("<invalid: %s>", abFlag)
+	}
+}
+
+// BlueGreen starts from returning "blue", and then alternates between "blue" and "green" on each process upgrade.
+// Alias to {{ AB "blue" "green" }}
+func BlueGreen() string {
+	return AB("blue", "green")
+}
+
+// Cat returns the content of the file designated by `path`, falling back to empty string on error.
+func Cat(path string) string {
 	c, err := os.ReadFile(path)
 	if err != nil {
 		return ""
@@ -30,12 +71,16 @@ func cat(path string) string {
 	return string(c)
 }
 
-func now(layout string) string {
-	return timefmt.Format(time.Now(), layout)
+var tStart = time.Now()
+
+// Now returns the start time of the process, formatted with a given `layout` following `strftime`.
+func Now(layout string) string {
+	return timefmt.Format(tStart, layout)
 }
 
-func utcnow(layout string) string {
-	return timefmt.Format(time.Now().UTC(), layout)
+// UTCNow returns the start time of the process in UTC timezone, formatted with a given `layout` following `strftime`.
+func UTCNow(layout string) string {
+	return timefmt.Format(tStart.UTC(), layout)
 }
 
 func substitute(s string) (string, error) {

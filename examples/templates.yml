@@ -1,5 +1,0 @@
-cmd: [ 'sh', '-c', 'while true; do echo $(date -uIseconds) hello from ${START_DATE}; sleep 1; done' ]
-# Env: specify extra environment whan launching `cmd`
-env:
-# Templates: support at-startup injection
-- 'START_DATE={{ now "%Y-%m-%d_%H-%M-%S-%f" }}'

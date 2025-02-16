@@ -54,8 +54,26 @@ ExecReload=/bin/kill -HUP $MAINPID
 PIDFile=/path/to/pid.file
 ```
 
+## Keeping psflip in foreground (e.g. OpenRC, daemontools)
+
+Some supervisors will consider the service unhealthy as soon as the main process exits. This does not play well with `psflip`'s design that terminates the main process on successful upgrade to complete the zero-downtime upgrade of `psflip`.
+
+To mitigate this, the repository comes with a `pidwatch` utility that monitors the lifecycle of a program that owns a pidfile:
+```
+pidwatch --pidfile /path/to/pid.file -- psflip -c <config file>
+```
+
+`pidwatch` will start a `psflip` instance inheriting `std{in,out,err}`, and will proxy all incoming signals to the main `psflip` instance. If possible, it will register itself as a subreaper to capture the new main process as its child; otherwise it will resort to polling the process through `kill -0` every 100 ms.
+
+`pidwatch` will always exit with 0 when the watched process terminates, regardless of the process exit code.
+
+Note, that while `psflip` supports zero-downtime upgrades, this is not the case for `pidwatch`.
+
 ## Alternatives for zero-downtime deployments
 
-* [kamal-proxy](https://github.com/basecamp/kamal-proxy) - if your app runs in a container and supports HTTP & Docker network isolation
-* [traefik](https://doc.traefik.io/traefik/) - if your app works with HTTP/TCP application proxy
-* [start_server](https://metacpan.org/dist/Server-Starter/view/script/start_server) - do not satisfy requirements for upgrades (assumes worker "healthy" after specific amount of time, forcefully tears down old worker even if the new one is dead, attempts to start worker in a loop instead of exiting and relying on supervisor configuration).
+I personally consider `psflip` a workaround for systems that need a safe zero-downtime deployment, but do not work well with state-of-the-art solutions. Consider using one of the following systems instead:
+
+* [kamal-proxy](https://github.com/basecamp/kamal-proxy) - if your app runs in a container and supports HTTP & Docker network isolation.
+* [traefik](https://doc.traefik.io/traefik/) - if your app works with HTTP/TCP application proxy.
+
+During my search for zero-downtime process restart, I encountered [start_server](https://metacpan.org/dist/Server-Starter/view/script/start_server) which I eventually discarded. It did not satisfy my requirements for upgrades - `start_server` assumes the worker "healthy" after specific amount of time, and then forcefully tears down old worker even if the new one is dead. Once the old worker is terminated, if the new worker is also dead, it attempts to start the worker in a loop, instead of exiting and relying on supervisor restart.
