@@ -75,5 +75,10 @@ I personally consider `psflip` a workaround for systems that need a safe zero-do
 
 * [kamal-proxy](https://github.com/basecamp/kamal-proxy) - if your app runs in a container and supports HTTP & Docker network isolation.
 * [traefik](https://doc.traefik.io/traefik/) - if your app works with HTTP/TCP application proxy.
+* [docker rollout](https://github.com/wowu/docker-rollout) - if your app works with HTTP/TCP application proxy.
 
-During my search for zero-downtime process restart, I encountered [start_server](https://metacpan.org/dist/Server-Starter/view/script/start_server) which I eventually discarded. It did not satisfy my requirements for upgrades - `start_server` assumes the worker "healthy" after specific amount of time, and then forcefully tears down old worker even if the new one is dead. Once the old worker is terminated, if the new worker is also dead, it attempts to start the worker in a loop, instead of exiting and relying on supervisor restart.
+During my search for zero-downtime process restart, I also evaluated the following solutions that didn't satisfy my upgrade tenets:
+
+* [start_server](https://metacpan.org/dist/Server-Starter/view/script/start_server) - it assumes the worker as "healthy" after specific amount of time, and then forcefully tears down old worker even if the new one is dead. Once the old worker is terminated, if the new worker is also dead, it attempts to start the worker in a loop, instead of exiting and relying on supervisor restart,
+* [huptime](https://github.com/amscanne/huptime) - no healthcheck for child validation,
+* [socketmaster](https://github.com/zimbatm/socketmaster) - crashing during initialization brings down the old worker.
