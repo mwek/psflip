@@ -3,6 +3,8 @@ package figs
 import (
 	"fmt"
 	"strings"
+
+	"github.com/kkyr/fig"
 )
 
 type Network string
@@ -26,3 +28,4 @@ func (s Network) String() string {
 }
 
 var _ fmt.Stringer = Network("tcp")
+var _ fig.StringUnmarshaler = (*Network)(nil)

@@ -2,7 +2,7 @@
 
 docker build --tag psflip-proxy .
 
-export PORT="${PORT:-8080}"
+export PORT="${1:-8080}"
 
 exec docker run \
     --init \

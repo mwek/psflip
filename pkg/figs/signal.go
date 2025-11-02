@@ -5,6 +5,7 @@ import (
 	"strings"
 	"syscall"
 
+	"github.com/kkyr/fig"
 	"golang.org/x/sys/unix"
 )
 
@@ -42,3 +43,4 @@ func (s Signal) String() string {
 }
 
 var _ fmt.Stringer = Signal(syscall.SIGINT)
+var _ fig.StringUnmarshaler = (*Signal)(nil)

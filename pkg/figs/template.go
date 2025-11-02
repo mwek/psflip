@@ -21,6 +21,7 @@ var t = template.New("psflip").Funcs(
 		"Cat":       Cat,
 		"Now":       Now,
 		"UTCNow":    UTCNow,
+		"Local":     GetLocal,
 	},
 )
 
@@ -32,6 +33,7 @@ const (
 
 var (
 	abFlag string
+	locals map[string]string
 )
 
 func init() {
@@ -44,31 +46,46 @@ func init() {
 	}
 }
 
+func SetLocals[T fmt.Stringer](l map[string]T) {
+	locals = make(map[string]string, len(l))
+	for k, v := range l {
+		locals[k] = v.String()
+	}
+}
+
+func GetLocal(name string) (string, error) {
+	if v, ok := locals[name]; ok {
+		return v, nil
+	} else {
+		return "", fmt.Errorf("local %s not found", name)
+	}
+}
+
 // AB initially returns s1, and then alternates between s1 and s2 on each process upgrade.
-func AB(s1, s2 string) string {
-	switch {
-	case abFlag == abA:
-		return s1
-	case abFlag == abB:
-		return s2
+func AB(s1, s2 string) (string, error) {
+	switch abFlag {
+	case abA:
+		return s1, nil
+	case abB:
+		return s2, nil
 	default:
-		return fmt.Sprintf("<invalid: %s>", abFlag)
+		return "", fmt.Errorf("invalid PSFLIP_AB_FLAG value: %s", abFlag)
 	}
 }
 
 // BlueGreen starts from returning "blue", and then alternates between "blue" and "green" on each process upgrade.
 // Alias to {{ AB "blue" "green" }}
-func BlueGreen() string {
+func BlueGreen() (string, error) {
 	return AB("blue", "green")
 }
 
 // Cat returns the content of the file designated by `path`, falling back to empty string on error.
-func Cat(path string) string {
+func Cat(path string) (string, error) {
 	c, err := os.ReadFile(path)
 	if err != nil {
-		return ""
+		return "", err
 	}
-	return string(c)
+	return string(c), nil
 }
 
 var tStart = time.Now()

@@ -1,7 +1,12 @@
+# Locals are used to store variables that can be reused in the configuration.
+locals:
+  name: 'example-{{ BlueGreen }}'
+
+# Example of healthcheck validating a Docker container.
 workdir: examples/docker
 cmd: [ 'sh', './start.sh' ]
 env:
-- 'CONTAINER_NAME=example-{{ BlueGreen }}'
+- 'CONTAINER_NAME={{ Local "name" }}'
 pidfile: /tmp/healthcheck-docker.pid
 
 # Only one healthcheck can be specified.
@@ -9,6 +14,6 @@ healthcheck:
   # docker waits until the reported container status is healthy
   docker:
     # Check until the container with the given name is healthy
-    container: 'example-{{ BlueGreen }}'
+    container: '{{ Local "name" }}'
     # Poll for healthcheck status every 2s
     interval: 2s

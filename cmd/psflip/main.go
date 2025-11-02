@@ -59,6 +59,11 @@ type Config struct {
 	Healthcheck healthcheck.Config
 }
 
+// Locals store the local variable for further reuse in configuration.
+type Locals struct {
+	Locals map[string]figs.TString
+}
+
 var (
 	fConfig = flag.StringP("config", "c", "config.yml", "psflip configuration file")
 	config  Config
@@ -116,7 +121,17 @@ func pidForwarder(upg *tableflip.Upgrader) (r *os.File, w *os.File, err error) {
 
 func main() {
 	flag.Parse()
-	err := fig.Load(&config, fig.File(*fConfig))
+
+	// Load locals
+	var locals Locals
+	err := fig.Load(&locals, fig.File(*fConfig))
+	if err != nil {
+		logger.Fatalf("invalid psflip locals: %v", err)
+	}
+	figs.SetLocals(locals.Locals)
+
+	// Load configuration
+	err = fig.Load(&config, fig.File(*fConfig))
 	if err != nil {
 		logger.Fatalf("invalid psflip configuration: %v", err)
 	}
