@@ -41,8 +41,7 @@ func (d *Docker) check(ctx context.Context, result chan error) {
 		case <-time.Tick(d.Interval):
 			status, err := c.ContainerInspect(ctx, containerID, client.ContainerInspectOptions{})
 			if err != nil {
-				result <- err
-				return
+				continue
 			}
 			state := status.Container.State
 			if state == nil {
