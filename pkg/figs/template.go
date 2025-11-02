@@ -96,44 +96,22 @@ func substitute(s string) (string, error) {
 	return sb.String(), nil
 }
 
-// TRegexp is a Regexp with template substitution on unmarshalling
-type TRegexp struct {
-	*regexp.Regexp
-}
-
-// UnmarshalString implements fig.StringUnmarshaler.
-func (t *TRegexp) UnmarshalString(str string) error {
-	str, err := substitute(str)
-	if err != nil {
-		return err
-	}
-	regexp, err := regexp.Compile(str)
-	if err != nil {
-		return err
-	}
-	*t = TRegexp{regexp}
-	return nil
-}
-
-var _ fig.StringUnmarshaler = &TRegexp{}
-
 // TString is a string with template substitution on unmarshalling
-type TString struct {
-	s string
-}
+type TString string
 
 func (s *TString) UnmarshalString(str string) error {
 	str, err := substitute(str)
 	if err != nil {
 		return err
 	}
-	*s = TString{str}
+	*s = TString(str)
 	return nil
 }
 
 func (s TString) String() string {
-	return string(s.s)
+	return string(s)
 }
 
-var _ fig.StringUnmarshaler = &TString{}
-var _ fmt.Stringer = TString{}
+// Enforce interface implementation
+var _ fmt.Stringer = TString("")
+var _ fig.StringUnmarshaler = (*TString)(nil)

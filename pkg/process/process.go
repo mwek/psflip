@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"slices"
 	"syscall"
 )
@@ -23,9 +24,18 @@ func Start(args []string, opts ...Option) (*Process, error) {
 		o(&opt)
 	}
 
+	dir := initialWD
+	if opt.dir != "" {
+		if filepath.IsAbs(opt.dir) {
+			dir = opt.dir
+		} else {
+			dir = filepath.Join(initialWD, opt.dir)
+		}
+	}
+
 	files := []*os.File{os.Stdin, os.Stdout, os.Stderr}
 	attr := &os.ProcAttr{
-		Dir:   initialWD,
+		Dir:   dir,
 		Env:   slices.Concat(initialEnv, opt.env),
 		Files: slices.Concat(files, opt.files),
 		Sys:   SysAttr(),

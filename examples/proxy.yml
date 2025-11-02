@@ -1,0 +1,17 @@
+# Example of zero-downtime deployment with proxying traffic between two containers.
+workdir: examples/proxy
+cmd: ['sh', './start.sh']
+env:
+- 'CONTAINER_NAME=proxy-{{ BlueGreen }}'
+- 'PORT={{ AB "8081" "8082" }}'
+
+# Enable proxy.
+proxy:
+- listen_address: '127.0.0.1:8080'
+  forward_address: 'localhost:{{ AB "8081" "8082" }}'
+pidfile: /tmp/proxy.pid
+
+# See healthcheck_docker.yml for more details.
+healthcheck:
+  docker:
+    container: 'proxy-{{ BlueGreen }}'

@@ -40,3 +40,5 @@ func (s Signal) Valid() bool {
 func (s Signal) String() string {
 	return unix.SignalName(s.Syscall())
 }
+
+var _ fmt.Stringer = Signal(syscall.SIGINT)

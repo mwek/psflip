@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"encoding/gob"
+	"errors"
 	logger "log"
 	"os"
 	"os/signal"
@@ -12,6 +13,7 @@ import (
 	"github.com/kkyr/fig"
 	"github.com/mwek/psflip/pkg/figs"
 	"github.com/mwek/psflip/pkg/healthcheck"
+	tcpproxy "github.com/mwek/psflip/pkg/proxy"
 
 	flag "github.com/spf13/pflag"
 )
@@ -20,12 +22,22 @@ import (
 type Config struct {
 	// Cmd stores the child command to start
 	Cmd []figs.TString `validate:"required"`
-	// Env stores the extra environment to be passed to the child process
+	// WorkDir stores the working directory for the child process. By default, it's the working directory of the psflip process.
+	WorkDir figs.TString
+	// Env stores the extra environment to be passed to the child process.
 	Env []figs.TString
 	// Pidfile (if not empty) describes the path with the PID of the active psflip
 	Pidfile figs.TString
 	// Quiet suppresses any log output from printf
 	Quiet bool
+
+	// Proxy controls the proxying behavior of psflip.
+	Proxy []struct {
+		ListenNetwork  figs.Network `fig:"listen_network" default:"tcp"`
+		ListenAddress  figs.TString `fig:"listen_address" validate:"required"`
+		ForwardNetwork figs.Network `fig:"forward_network" default:"tcp"`
+		ForwardAddress figs.TString `fig:"forward_address" validate:"required"`
+	}
 
 	// Upgrade controls the psflip upgrade process.
 	Upgrade struct {
@@ -131,9 +143,11 @@ func main() {
 		logger.Fatalf("failed to start child process: %v", err)
 	}
 
-	// On return, terminate the supervisor and proxy exit code
+	// On return, terminate the proxy, supervisor and proxy exit code
+	proxy := tcpproxy.New()
 	defer func() {
 		if sv != nil {
+			proxy.Stop()
 			cancel()
 			<-sv.Exit()
 			os.Exit(sv.ExitCode())
@@ -162,6 +176,26 @@ func main() {
 	if pidpipeW != nil && err != nil {
 		log("failed to write child pid: %v", err)
 	}
+
+	// Setup proxying
+	for _, p := range config.Proxy {
+		listener, err := upg.Listen(p.ListenNetwork.String(), p.ListenAddress.String())
+		if err != nil {
+			log("failed to listen on %s: %v", p.ListenAddress.String(), err)
+			return
+		}
+		serve := proxy.Add(listener, p.ForwardNetwork.String(), p.ForwardAddress.String())
+		go func() {
+			if err := serve(); err != nil {
+				if errors.Is(err, tcpproxy.ErrServerClosed) {
+					return
+				}
+				log("failed to serve: %v", err)
+			}
+		}()
+	}
+
+	// Signal we are ready
 	err = upg.Ready()
 	if err != nil {
 		log("failed to signal ready: %v", err)

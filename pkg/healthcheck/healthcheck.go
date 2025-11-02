@@ -13,6 +13,7 @@ import (
 type Config struct {
 	Alive   *Alive
 	Command *Command
+	Docker  *Docker
 }
 
 // Healtcheck determines if the cmd is healthy

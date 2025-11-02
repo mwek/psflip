@@ -1,0 +1,5 @@
+services:
+  example:
+    build: .
+    init: true
+    container_name: "${CONTAINER_NAME:-example}"

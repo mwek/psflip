@@ -97,7 +97,11 @@ func (sv *supervisor) signal(ctx context.Context, child *process.Process) {
 func (sv *supervisor) Start(ctx context.Context) error {
 	// Start child process
 	env := figs.Stringify(sv.Env)
-	child, err := process.Start(figs.Stringify(sv.Cmd), process.Env(env...))
+	child, err := process.Start(
+		figs.Stringify(sv.Cmd),
+		process.Env(env...),
+		process.Dir(sv.WorkDir.String()),
+	)
 	if err != nil {
 		return err
 	}

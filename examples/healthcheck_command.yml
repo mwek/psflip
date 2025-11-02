@@ -4,7 +4,7 @@ cmd: [ 'sh', '-c', 'while true; do echo $(date -uIseconds) hello from $$; sleep 
 healthcheck:
   # command assumes the child healthy if the healthcheck exits with 0
   command:
-    cmd: [ 'bash', '-c', 'r=$((RANDOM % 5)); echo $(date -uIseconds) healthcheck $r >> /tmp/healthcheck.log; [[ $r -eq 0 ]]' ]
+    cmd: [ 'sh', '-c', 'r=$((RANDOM % 5)); echo $(date -uIseconds) healthcheck $r >> /tmp/healthcheck.log; [ $r -eq 0 ]' ]
     # starts the healthcheck probing it after 3s
     after: 3s
     # Runs cmd every 2s. Only one healthcheck cmd can be executed at the same time, other runs will be skipped.
