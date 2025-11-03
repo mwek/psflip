@@ -2,6 +2,7 @@
 locals:
   name: 'proxy-{{ BlueGreen }}'
   port: '{{ AB "8081" "8082" }}'
+  tmpdir: '{{ EnvDefault "TMPDIR" "/tmp" }}'
 
 # Example of zero-downtime deployment with proxying traffic between two containers.
 workdir: examples/proxy
@@ -11,9 +12,9 @@ env:
 
 # Enable proxy.
 proxy:
-- listen_address: '127.0.0.1:8080'
-  forward_address: 'localhost:{{ Local "port" }}'
-pidfile: /tmp/proxy.pid
+- listen: 'unix://{{ Local "tmpdir" }}/proxy.sock'
+  forward: 'localhost:{{ Local "port" }}'
+pidfile: '{{ Local "tmpdir" }}/proxy.pid'
 
 # See healthcheck_docker.yml for more details.
 healthcheck:

@@ -14,14 +14,15 @@ import (
 
 var t = template.New("psflip").Funcs(
 	template.FuncMap{
-		"Env":       os.Getenv,
-		"AB":        AB,
-		"BlueGreen": BlueGreen,
-		"EscapeRE":  regexp.QuoteMeta,
-		"Cat":       Cat,
-		"Now":       Now,
-		"UTCNow":    UTCNow,
-		"Local":     GetLocal,
+		"Env":        os.Getenv,
+		"EnvDefault": EnvDefault,
+		"AB":         AB,
+		"BlueGreen":  BlueGreen,
+		"EscapeRE":   regexp.QuoteMeta,
+		"Cat":        Cat,
+		"Now":        Now,
+		"UTCNow":     UTCNow,
+		"Local":      GetLocal,
 	},
 )
 
@@ -44,6 +45,13 @@ func init() {
 		os.Setenv(abEnv, abA)
 		abFlag = abA
 	}
+}
+
+func EnvDefault(key, def string) string {
+	if v, ok := os.LookupEnv(key); ok {
+		return v
+	}
+	return def
 }
 
 func SetLocals[T fmt.Stringer](l map[string]T) {

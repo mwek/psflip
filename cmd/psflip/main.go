@@ -33,10 +33,8 @@ type Config struct {
 
 	// Proxy controls the proxying behavior of psflip.
 	Proxy []struct {
-		ListenNetwork  figs.Network `fig:"listen_network" default:"tcp"`
-		ListenAddress  figs.TString `fig:"listen_address" validate:"required"`
-		ForwardNetwork figs.Network `fig:"forward_network" default:"tcp"`
-		ForwardAddress figs.TString `fig:"forward_address" validate:"required"`
+		Listen  figs.NetworkAddr `validate:"required"`
+		Forward figs.NetworkAddr `validate:"required"`
 	}
 
 	// Upgrade controls the psflip upgrade process.
@@ -194,12 +192,12 @@ func main() {
 
 	// Setup proxying
 	for _, p := range config.Proxy {
-		listener, err := upg.Listen(p.ListenNetwork.String(), p.ListenAddress.String())
+		listener, err := upg.Listen(p.Listen.Network, p.Listen.Address)
 		if err != nil {
-			log("failed to listen on %s: %v", p.ListenAddress.String(), err)
+			log("failed to listen on %s: %v", p.Listen, err)
 			return
 		}
-		serve := proxy.Add(listener, p.ForwardNetwork.String(), p.ForwardAddress.String())
+		serve := proxy.Add(listener, p.Forward.Network, p.Forward.Address)
 		go func() {
 			if err := serve(); err != nil {
 				if errors.Is(err, tcpproxy.ErrServerClosed) {
