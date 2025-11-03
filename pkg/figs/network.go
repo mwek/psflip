@@ -13,7 +13,7 @@ type NetworkAddr struct {
 }
 
 // Network implements fig.StringUnmarshaler
-func (p *NetworkAddr) UnmarshalString(str string) error {
+func (na *NetworkAddr) UnmarshalString(str string) error {
 	// Support template substitution
 	var tmpl TString
 	err := tmpl.UnmarshalString(str)
@@ -39,13 +39,13 @@ func (p *NetworkAddr) UnmarshalString(str string) error {
 	default:
 		return fmt.Errorf("invalid network: %s", str)
 	}
-	*p = NetworkAddr{network, address}
+	*na = NetworkAddr{network, address}
 	return nil
 }
 
 // Network implements fmt.Stringer
-func (s NetworkAddr) String() string {
-	return fmt.Sprintf("%s://%s", s.Network, s.Address)
+func (na NetworkAddr) String() string {
+	return fmt.Sprintf("%s://%s", na.Network, na.Address)
 }
 
 // Compile-time check for interface implementation
