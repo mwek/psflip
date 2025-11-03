@@ -82,7 +82,8 @@ func proxyConn(src net.Conn, network, dst string) {
 	// connection after psflip exits.
 	wg := sync.WaitGroup{}
 	wg.Add(2)
-	go func() { defer wg.Done(); io.Copy(d, src) }()
-	go func() { defer wg.Done(); io.Copy(src, d) }()
+	var stream = func(dst, str net.Conn) { defer wg.Done(); defer dst.Close(); io.Copy(dst, str) }
+	go stream(d, src)
+	go stream(src, d)
 	wg.Wait()
 }
