@@ -9,7 +9,9 @@ upgrade:
 
 # Graceful child shutdown configuration
 shutdown:
+  # Delay before sending the shutdown signal to the child.
+  delay: 5s
   # Signal sent to the child when asking to terminate. In this example, due to SIGSTOP, the child will hang indefinitely.
   signal: SIGSTOP
-  # Timeout after which the child is SIGKILLed.
+  # Timeout after which the child is SIGKILLed after receiving the shutdown signal.
   timeout: 5s

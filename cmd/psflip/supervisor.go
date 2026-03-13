@@ -53,6 +53,11 @@ func (sv *supervisor) cleanup(child *process.Process) {
 		return
 	}
 
+	if sv.Shutdown.Delay > 0 {
+		log("worker %s: waiting %s before shutdown", child, sv.Shutdown.Delay)
+		time.Sleep(sv.Shutdown.Delay)
+	}
+
 	log("worker %s: sending %s", child, sv.Shutdown.Signal)
 	child.Signal(sv.Shutdown.Signal.Syscall())
 	select {

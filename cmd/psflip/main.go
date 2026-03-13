@@ -47,6 +47,8 @@ type Config struct {
 
 	// Shutdown controls the child's graceful shutdown.
 	Shutdown struct {
+		// Delay before sending the shutdown signal to the child.
+		Delay time.Duration `default:"0s"`
 		// Signal sent to the child asking for graceful shutdown.
 		Signal figs.Signal `default:"SIGTERM"`
 		// Timeout after the child receives the SIGKILL.
@@ -138,7 +140,7 @@ func main() {
 	buffer := 5 * time.Second // extra buffer to prevent kills from tableflip
 	upg, err := tableflip.New(tableflip.Options{
 		PIDFile:        config.Pidfile.String(),
-		UpgradeTimeout: config.Upgrade.Timeout + config.Shutdown.Timeout + buffer,
+		UpgradeTimeout: config.Upgrade.Timeout + config.Shutdown.Delay + config.Shutdown.Timeout + buffer,
 	})
 	if err != nil {
 		logger.Fatalf("invalid tableflip configuration: %v", err)
