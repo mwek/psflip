@@ -1,3 +1,5 @@
+export CGO_ENABLED=0
+
 all: psflip pidwatch
 
 psflip: Makefile $(wildcard ./cmd/psflip/*) $(wildcard ./pkg/**/*)
