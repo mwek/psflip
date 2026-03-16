@@ -1,0 +1,19 @@
+# Load-test config: two backends behind psflip (ports 8080 crash_rate=0, 8081 crash_rate=50)
+locals:
+  port: '{{ AB "8080" "8081" }}'
+
+cmd: ['./tests/mock_backend']
+
+pidfile: ./tests/test_backend.pid
+
+env:
+- 'PORT={{ Local "port" }}'
+- 'CRASH_RATE={{ AB "0" "50" }}'
+
+proxy:
+  - listen: ':8000'
+    forward: ':{{ Local "port" }}'
+
+healthcheck:
+  alive:
+    timeout: 2s
