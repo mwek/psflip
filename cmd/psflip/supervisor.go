@@ -122,7 +122,11 @@ func (sv *supervisor) supervise(ctx context.Context, child *process.Process) (ec
 	// Clean child process on exit
 	defer close(sv.exit)
 	defer sv.cleanup(child)
-	defer func() { sv.ec = ec }()
+	defer func() {
+		if ec != -1 {
+			sv.ec = ec
+		}
+	}()
 
 	// Ensure we are healthy
 	select {
@@ -148,8 +152,7 @@ func (sv *supervisor) supervise(ctx context.Context, child *process.Process) (ec
 	select {
 	// Cancellation: terminate the child process
 	case <-ctx.Done():
-		defer log("worker %s: shutdown, upgrade completed", child)
-		return 0
+		return -1
 	// Child exit: cleanup and proxy error code
 	case ps := <-child.Done:
 		ec = process.ExitCode(ps)

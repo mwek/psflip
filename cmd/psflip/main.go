@@ -165,6 +165,7 @@ func main() {
 			proxy.Stop()
 			cancel()
 			<-sv.Exit()
+			proxy.Wait()
 			os.Exit(sv.ExitCode())
 		}
 	}()
@@ -186,12 +187,6 @@ func main() {
 	case <-sv.Ready(): // we are healthy
 	}
 
-	// Signal we are ready
-	err = gob.NewEncoder(pidpipeW).Encode(os.Getpid())
-	if pidpipeW != nil && err != nil {
-		log("failed to write child pid: %v", err)
-	}
-
 	// Setup proxying
 	for _, p := range config.Proxy {
 		listener, err := upg.Listen(p.Listen.Network, p.Listen.Address)
@@ -211,6 +206,11 @@ func main() {
 	}
 
 	// Signal we are ready
+	err = gob.NewEncoder(pidpipeW).Encode(os.Getpid())
+	if pidpipeW != nil && err != nil {
+		log("failed to write child pid: %v", err)
+	}
+
 	err = upg.Ready()
 	if err != nil {
 		log("failed to signal ready: %v", err)
